@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Analysis result · FraudLens AI{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">ANALYSIS COMPLETE</div><h1>Media <span>assessment</span></h1><p>Review the model estimate and supporting forensic information.</p></div>
+  <a class="btn btn-outline-custom" href="{{ url_for('main.dashboard') }}">＋ New analysis</a>
+</div>
+<div class="result-hero panel">
+  <div class="result-file"><div class="file-icon large">{{ '▧' if record.media_type == 'image' else ('▶' if record.media_type == 'video' else '▤') }}</div><div><b>{{ record.filename }}</b><small>{{ record.media_type|title }} · {{ (record.file_size / 1024 / 1024)|round(2) }} MB · Analysis #{{ record.id }}</small></div></div>
+  <div class="classification {{ 'classification-ai' if record.classification == 'Likely AI-generated' else ('classification-real' if record.classification == 'Likely camera-originated' else 'classification-neutral') }}">{{ record.classification }}</div>
+  {% if record.ai_likelihood is not none %}
+  <div class="score-grid">
+    <div class="score-box"><span>AI-generation likelihood</span><strong>{{ record.ai_likelihood }}<small>%</small></strong><div class="score-track"><i style="width:{{ record.ai_likelihood }}%"></i></div></div>
+    <div class="score-box"><span>Camera-origin likelihood*</span><strong>{{ record.camera_likelihood }}<small>%</small></strong><div class="score-track teal"><i style="width:{{ record.camera_likelihood }}%"></i></div></div>
+  </div>
+  {% else %}<div class="alert alert-warning mt-3">Model inference was unavailable. No detection score has been invented. Check the model status on the dashboard and retry when online.</div>{% endif %}
+  <p class="small-muted">{{ record.confidence_note or 'No model note available.' }}</p>
+  <div class="result-actions"><a class="btn btn-primary-custom" href="{{ url_for('main.report', analysis_id=record.id) }}">↓ Download PDF report</a><a class="btn btn-outline-custom" href="{{ url_for('main.history') }}">View history</a></div>
+</div>
+{% if frames %}
+<section class="panel mt-4"><div class="panel-head"><div><div class="eyebrow">VIDEO FRAME INSPECTION</div><h2>Sampled frame results</h2><p>Only selected frames were analyzed; this is not a full video deepfake verdict.</p></div><span class="pill">{{ frames|length }} FRAMES</span></div>
+<div class="table-responsive"><table class="table custom-table"><thead><tr><th>FRAME</th><th>TIMESTAMP</th><th>AI LIKELIHOOD</th><th>ASSESSMENT</th></tr></thead><tbody>{% for f in frames %}<tr><td>{{ f.frame_number }}</td><td>{{ f.timestamp_seconds }} s</td><td>{{ f.ai_likelihood }}%</td><td>{{ f.classification }}</td></tr>{% endfor %}</tbody></table></div></section>
+{% endif %}
+{% if pages %}
+<section class="panel mt-4"><div class="panel-head"><div><div class="eyebrow">PDF PAGE INSPECTION</div><h2>Sampled page results</h2><p>The image detector analyzes rendered page appearance. Text-heavy pages may be unreliable.</p></div><span class="pill">{{ pages|length }} PAGES</span></div>
+<div class="table-responsive"><table class="table custom-table"><thead><tr><th>PDF PAGE</th><th>AI LIKELIHOOD</th><th>ASSESSMENT</th></tr></thead><tbody>{% for page in pages %}<tr><td>{{ page.page_number }}</td><td>{{ page.ai_likelihood }}%</td><td>{{ page.classification }}</td></tr>{% endfor %}</tbody></table></div></section>
+{% endif %}
+<section class="panel mt-4"><div class="panel-head"><div><div class="eyebrow">DIGITAL FORENSICS</div><h2>File metadata & integrity</h2></div><span class="pill">SHA-256</span></div>
+<div class="metadata-grid"><div><small>File fingerprint</small><code>{{ record.sha256 }}</code></div><div><small>Model</small><b>{{ record.model_name or 'Unavailable' }}</b></div><div><small>File size</small><b>{{ record.file_size }} bytes</b></div><div><small>Media type</small><b>{{ record.media_type|title }}</b></div></div>
+<details class="metadata-details"><summary>View extracted metadata</summary><pre>{{ metadata|tojson(indent=2) }}</pre></details>
+</section>
+<div class="disclaimer-strip mt-4">ⓘ <span>Camera-origin likelihood is the complement of the image detector's AI score, not independent proof that a camera captured the file. Metadata can be missing or edited.</span></div>
+{% endblock %}

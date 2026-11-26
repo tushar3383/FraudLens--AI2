@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Analysis history · FraudLens AI{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">INVESTIGATION RECORDS</div><h1>Analysis <span>history</span></h1><p>Review and manage previously analyzed media.</p></div><a class="btn btn-primary-custom" href="{{ url_for('main.dashboard') }}#upload">＋ New analysis</a></div>
+<section class="panel recent-panel">
+{% if records %}<div class="table-responsive"><table class="table custom-table"><thead><tr><th>FILE</th><th>TYPE</th><th>CLASSIFICATION</th><th>AI LIKELIHOOD</th><th>DATE (UTC)</th><th>ACTIONS</th></tr></thead><tbody>
+{% for r in records %}<tr><td><div class="file-cell"><span class="file-icon">{{ '▧' if r.media_type == 'image' else ('▶' if r.media_type == 'video' else '▤') }}</span><b>{{ r.filename }}</b></div></td><td>{{ r.media_type|upper }}</td><td><span class="result-tag {{ 'tag-ai' if r.classification == 'Likely AI-generated' else ('tag-real' if r.classification == 'Likely camera-originated' else 'tag-neutral') }}">{{ r.classification }}</span></td><td>{{ (r.ai_likelihood|string + '%') if r.ai_likelihood is not none else 'Unavailable' }}</td><td>{{ r.created_at[:19].replace('T',' ') }}</td><td><a class="row-link" href="{{ url_for('main.result', analysis_id=r.id) }}">Open</a> <form class="d-inline" method="post" action="{{ url_for('main.delete', analysis_id=r.id) }}" onsubmit="return confirm('Delete this analysis and uploaded file?')"><button class="delete-link" type="submit">Delete</button></form></td></tr>{% endfor %}
+</tbody></table></div>{% else %}<div class="empty-state"><div>◷</div><b>No saved analyses</b><p>Upload your first image or video from the dashboard.</p><a href="{{ url_for('main.dashboard') }}#upload" class="btn btn-primary-custom mt-3">Start analysis</a></div>{% endif %}
+</section>
+{% endblock %}

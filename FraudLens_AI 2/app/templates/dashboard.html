@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · FraudLens AI{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">MEDIA INTELLIGENCE PLATFORM</div><h1>Authenticity <span>dashboard</span></h1><p>Analyze digital media, inspect forensic signals, and review detection results.</p></div>
+  <a class="btn btn-primary-custom" href="#upload">＋ New analysis</a>
+</div>
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-label">Total analyses</div><div class="stat-value">{{ stats.total }}</div><div class="stat-foot">All processed files</div><div class="stat-icon">▤</div></div>
+  <div class="stat-card"><div class="stat-label">Images analyzed</div><div class="stat-value">{{ stats.images }}</div><div class="stat-foot">Image files</div><div class="stat-icon cyan">▧</div></div>
+  <div class="stat-card"><div class="stat-label">Videos analyzed</div><div class="stat-value">{{ stats.videos }}</div><div class="stat-foot">Video files</div><div class="stat-icon purple">▶</div></div>
+  <div class="stat-card"><div class="stat-label">PDFs analyzed</div><div class="stat-value">{{ stats.pdfs }}</div><div class="stat-foot">PDF documents</div><div class="stat-icon cyan">▤</div></div>
+  <div class="stat-card"><div class="stat-label">Likely AI-generated</div><div class="stat-value">{{ stats.ai }}</div><div class="stat-foot">Model assessment</div><div class="stat-icon amber">⌁</div></div>
+</div>
+<div class="main-grid">
+  <section class="panel upload-panel" id="upload">
+    <div class="panel-head"><div><div class="eyebrow">START INVESTIGATION</div><h2>Analyze your media</h2><p>Upload an image, video, or PDF to begin authenticity analysis.</p></div><span class="pill">IMAGE + VIDEO + PDF</span></div>
+    <form action="{{ url_for('main.analyze') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+      <label class="dropzone" for="mediaInput" id="dropzone">
+        <div class="upload-symbol">↑</div><h3>Drop your file here</h3><p>or <span>browse from your device</span></p>
+        <small>JPG · PNG · WEBP · BMP · MP4 · MOV · AVI · MKV · WEBM · PDF</small>
+        <input id="mediaInput" name="media" type="file" accept=".jpg,.jpeg,.png,.webp,.bmp,.mp4,.mov,.avi,.mkv,.webm,.pdf,application/pdf" required>
+      </label>
+      <div class="selected-file" id="selectedFile">No file selected</div>
+      <div class="upload-actions"><div class="privacy-note">⌑ Max file size: 100 MB</div><button class="btn btn-primary-custom" id="analyzeBtn" type="submit">Analyze media <span>→</span></button></div>
+    </form>
+    <div class="model-status {{ 'ready' if model_status.ready else 'not-ready' }}"><span class="status-dot"></span><div><b>AI model status</b><small>{{ model_status.message }}</small></div></div>
+  </section>
+  <section class="panel overview-panel">
+    <div class="panel-head"><div><div class="eyebrow">WORKSPACE OVERVIEW</div><h2>Analysis distribution</h2></div></div>
+    <div class="chart-wrap"><canvas id="distributionChart"></canvas></div>
+    <div class="legend-list"><div><i class="dot green"></i>Likely camera-originated <b>{{ stats.real }}</b></div><div><i class="dot orange"></i>Likely AI-generated <b>{{ stats.ai }}</b></div><div><i class="dot gray"></i>Inconclusive <b>{{ stats.inconclusive }}</b></div></div>
+  </section>
+</div>
+<section class="panel recent-panel">
+  <div class="panel-head"><div><div class="eyebrow">RECENT ACTIVITY</div><h2>Latest analyses</h2></div><a href="{{ url_for('main.history') }}" class="text-link">View all →</a></div>
+  {% if records %}
+  <div class="table-responsive"><table class="table custom-table"><thead><tr><th>FILE</th><th>TYPE</th><th>RESULT</th><th>AI LIKELIHOOD</th><th>DATE</th><th></th></tr></thead><tbody>
+  {% for r in records %}<tr><td><div class="file-cell"><span class="file-icon">{{ '▧' if r.media_type == 'image' else ('▶' if r.media_type == 'video' else '▤') }}</span><b>{{ r.filename }}</b></div></td><td>{{ r.media_type|upper }}</td><td><span class="result-tag {{ 'tag-ai' if r.classification == 'Likely AI-generated' else ('tag-real' if r.classification == 'Likely camera-originated' else 'tag-neutral') }}">{{ r.classification }}</span></td><td>{{ (r.ai_likelihood|string + '%') if r.ai_likelihood is not none else 'Unavailable' }}</td><td>{{ r.created_at[:10] }}</td><td><a class="row-link" href="{{ url_for('main.result', analysis_id=r.id) }}">Open →</a></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-state"><div>◷</div><b>No analyses yet</b><p>Your recent media analysis will appear here.</p></div>{% endif %}
+</section>
+<div class="disclaimer-strip">ⓘ <span><b>Important:</b> AI detection is probabilistic. A detector score cannot establish authenticity on its own. Use independent evidence for important decisions.</span></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const dist = {{ [stats.real, stats.ai, stats.inconclusive]|tojson }};
+const ctx = document.getElementById('distributionChart');
+if(ctx) new Chart(ctx,{type:'doughnut',data:{labels:['Likely camera-originated','Likely AI-generated','Inconclusive'],datasets:[{data:dist,backgroundColor:['#18b887','#f59e0b','#64748b'],borderWidth:0,hoverOffset:5}]},options:{cutout:'76%',plugins:{legend:{display:false}}}});
+</script>
+{% endblock %}
